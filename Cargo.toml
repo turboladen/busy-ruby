@@ -1,0 +1,11 @@
+[package]
+name = "busy"
+version = "0.1.0"
+authors = ["Steve Loveless <steve.loveless@gmail.com>"]
+
+[dependencies]
+hyper = "*"
+ruru = "*"
+
+[lib]
+crate-type = ["dylib", "rlib"]
