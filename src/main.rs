@@ -12,6 +12,7 @@ use std::error::Error;
 
 fn main() {
     VM::init();
+    VM::require("/Users/sloveless/.gem/ruby/2.2.5/gems/rack-2.0.1/lib/rack");
     VM::require("/Users/sloveless/.gem/ruby/2.2.5/gems/rack-2.0.1/lib/rack/builder");
 
     let rackup_file_path = env::args().nth(1).unwrap();
