@@ -1,9 +1,12 @@
-extern crate ruru;
-extern crate hyper;
+use hyper::header::{ContentLength, Headers};
+// use hyper::http::h1::{HttpWriter};
+use hyper::server::{Request, Response};
+use hyper::status::StatusCode;
+use hyper::uri::RequestUri;
+use ruru::{Class};
+// use hyper::version::HttpVersion;
 
-use self::hyper::server::Request;
-use self::hyper::uri::RequestUri;
-use self::ruru::{Array, Boolean, Fixnum, Hash, RString};
+use ruru::{Array, Boolean, Fixnum, Hash, Object, RString};
 
 pub struct RackEnv {
     pub env: Hash
@@ -50,3 +53,29 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
     }
 }
 
+pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
+    println!("in rack to response");
+    // Set status
+    let rack_status = rack_array.at(0).try_convert_to::<Fixnum>().unwrap().to_i64();
+    let hyper_status = StatusCode::from_u16(rack_status as u16);
+    // *hyper_response.status_mut() = hyper_status;
+
+    println!("status: {}", hyper_status);
+    //------------------------
+    // Set headers
+    let mut headers = Headers::new();
+
+    // Set Content-Length
+    let ruby_body = rack_array.at(2).try_convert_to::<RString>().unwrap();
+    let ruby_body_class = ruby_body.send("class", vec![]);
+    Class::from_existing("Kernel").send("puts", vec![ruby_body_class]);
+
+    let body = ruby_body.to_string();
+    headers.set(ContentLength(body.len() as u64));
+    // End headers
+    //------------------------
+
+    println!("body: {}", body);
+    *res.status_mut() = hyper_status;
+    body
+}
