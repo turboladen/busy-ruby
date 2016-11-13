@@ -58,24 +58,27 @@ pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
     // Set status
     let rack_status = rack_array.at(0).try_convert_to::<Fixnum>().unwrap().to_i64();
     let hyper_status = StatusCode::from_u16(rack_status as u16);
-    // *hyper_response.status_mut() = hyper_status;
-
+    *res.status_mut() = hyper_status;
     println!("status: {}", hyper_status);
+
+
+    //------------------------
+    // Read body
+    // This is a Rack::BodyProxy when used with Rails
+    let ruby_body_proxy = rack_array.at(2);
+    let ruby_body = Class::from_existing("Busy").send("extract_rack_proxy", vec![ruby_body_proxy]);
+    let body = ruby_body.try_convert_to::<RString>().unwrap().to_string();
+
     //------------------------
     // Set headers
     let mut headers = Headers::new();
 
     // Set Content-Length
-    let ruby_body = rack_array.at(2).try_convert_to::<RString>().unwrap();
-    let ruby_body_class = ruby_body.send("class", vec![]);
-    Class::from_existing("Kernel").send("puts", vec![ruby_body_class]);
 
-    let body = ruby_body.to_string();
     headers.set(ContentLength(body.len() as u64));
     // End headers
     //------------------------
 
     println!("body: {}", body);
-    *res.status_mut() = hyper_status;
     body
 }
