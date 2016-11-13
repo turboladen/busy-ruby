@@ -54,7 +54,6 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
 }
 
 pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
-    println!("in rack to response");
     // Set status
     let rack_status = rack_array.at(0).try_convert_to::<Fixnum>().unwrap().to_i64();
     let hyper_status = StatusCode::from_u16(rack_status as u16);

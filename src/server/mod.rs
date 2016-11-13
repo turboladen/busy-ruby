@@ -16,14 +16,16 @@ methods!(
 
     fn rackup(file_path: RString) -> NilClass {
         let ruby_file_path = file_path.unwrap();
-        Class::from_existing("Kernel").send("puts", vec![RString::new("sup").to_any_object()]);
+        println!("busy> about to bring up your rack app using file '{}'", ruby_file_path.to_string());
 
+        // Rack::Builder.parse_file returns an Array: [app, options].
         let app_and_options = Class::from_existing("Rack").get_nested_class("Builder")
                                 .send("parse_file", vec![ruby_file_path.to_any_object()])
                                 .try_convert_to::<Array>()
                                 .unwrap();
 
-        Class::from_existing("Kernel").send("puts", vec![app_and_options.to_any_object()]);
+        ruby_puts(RString::new("app_and_options:").to_any_object());
+        ruby_puts(app_and_options.to_any_object());
         run_hyper(app_and_options.at(0));
         NilClass::new()
     }
