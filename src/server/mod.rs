@@ -7,6 +7,7 @@ use hyper::server::{Request, Response};
 use ruru::{AnyObject, Array, Class, NilClass, Object, RString};
 use std::error::Error;
 use std::io::Write;
+use std::process;
 
 class!(Server);
 
@@ -38,6 +39,9 @@ methods!(
 );
 
 fn run_hyper(ruby_app: AnyObject) {
+    unsafe { signal(2, quit); }
+    unsafe { signal(3, quit); }
+
     HyperServer::http("0.0.0.0:8080").unwrap().handle(move |req: Request, mut res: Response| {
         println!("request uri: {}", req.uri);
         let rack_env = RackEnv::from(req);
@@ -61,6 +65,15 @@ fn run_hyper(ruby_app: AnyObject) {
 
 fn ruby_puts(object: AnyObject) {
     Class::from_existing("Kernel").send("puts", vec![object]);
+}
+
+extern "C" {
+  fn signal(sig: u32, callback: extern fn(u32)) -> extern fn(u32);
+}
+
+extern fn quit(_:u32) {
+  println!("Interrupted!");
+  process::exit(0);
 }
 
 pub extern fn init() {
