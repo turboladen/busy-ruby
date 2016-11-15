@@ -2,9 +2,8 @@ use hyper::header::{ContentLength};
 use hyper::server::{Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use ruru::{Class};
-
-use ruru::{AnyObject, Array, Boolean, Fixnum, Hash, Object, RString};
+use ruru::{AnyObject, Array, Boolean, Class, Fixnum, Hash, Object, RString};
+use self::super::super::ruby_utils;
 
 pub struct RackEnv {
     pub env: Hash
@@ -74,6 +73,8 @@ pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
     //------------------------
     // Set headers
     res.headers_mut().set(ContentLength(body.len() as u64));
+    ruby_utils::ruby_puts(RString::new("Rack response headers: ").to_any_object());
+    ruby_utils::ruby_puts(rack_array.at(1));
     // End headers
     //------------------------
 

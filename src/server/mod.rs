@@ -2,6 +2,7 @@ mod rack_env;
 
 use self::rack_env::RackEnv;
 use self::rack_env::rack_to_response;
+use self::super::ruby_utils;
 use hyper::server::Server as HyperServer;
 use hyper::server::{Request, Response};
 use ruru::{AnyObject, Array, Class, NilClass, Object, RString};
@@ -25,8 +26,8 @@ methods!(
                                 .try_convert_to::<Array>()
                                 .unwrap();
 
-        ruby_puts(RString::new("app_and_options:").to_any_object());
-        ruby_puts(app_and_options.to_any_object());
+        ruby_utils::ruby_puts(RString::new("app_and_options:").to_any_object());
+        ruby_utils::ruby_puts(app_and_options.to_any_object());
         run_hyper(app_and_options.at(0));
         NilClass::new()
     }
@@ -47,8 +48,8 @@ fn run_hyper(ruby_app: AnyObject) {
         let rack_env = RackEnv::from(req);
 
         let app_class_name = ruby_app.send("class", vec![]);
-        ruby_puts(app_class_name);
-        ruby_puts(rack_env.env.to_any_object());
+        ruby_utils::ruby_puts(app_class_name);
+        ruby_utils::ruby_puts(rack_env.env.to_any_object());
 
         let rack_response = ruby_app.send("call", vec!(rack_env.env.to_any_object()))
                                 .try_convert_to::<Array>()
@@ -61,10 +62,6 @@ fn run_hyper(ruby_app: AnyObject) {
         stream.write_all(body).unwrap();
         // res;
     }).unwrap();
-}
-
-fn ruby_puts(object: AnyObject) {
-    Class::from_existing("Kernel").send("puts", vec![object]);
 }
 
 extern "C" {
