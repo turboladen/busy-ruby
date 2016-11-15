@@ -1,10 +1,10 @@
-use hyper::header::{ContentLength, Headers};
+use hyper::header::{ContentLength};
 use hyper::server::{Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use ruru::{Class};
 
-use ruru::{Array, Boolean, Fixnum, Hash, Object, RString};
+use ruru::{AnyObject, Array, Boolean, Fixnum, Hash, Object, RString};
 
 pub struct RackEnv {
     pub env: Hash
@@ -63,29 +63,33 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
 
 pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
     // Set status
-    let rack_status = rack_array.at(0).try_convert_to::<Fixnum>().unwrap().to_i64();
-    let hyper_status = StatusCode::from_u16(rack_status as u16);
+    let hyper_status = build_status(rack_array.at(0));
     *res.status_mut() = hyper_status;
     println!("status: {}", hyper_status);
 
-
     //------------------------
     // Read body
-    // This is a Rack::BodyProxy when used with Rails
-    let ruby_body_proxy = rack_array.at(2);
-    let ruby_body = Class::from_existing("Busy").send("extract_rack_proxy", vec![ruby_body_proxy]);
-    let body = ruby_body.try_convert_to::<RString>().unwrap().to_string();
+    let body = build_body(rack_array.at(2));
 
     //------------------------
     // Set headers
-    let mut headers = Headers::new();
-
-    // Set Content-Length
-
-    headers.set(ContentLength(body.len() as u64));
+    res.headers_mut().set(ContentLength(body.len() as u64));
     // End headers
     //------------------------
 
     println!("body: {}", body);
     body
+}
+
+fn build_status(rack_response_code: AnyObject) -> StatusCode {
+    let rack_status = rack_response_code.try_convert_to::<Fixnum>().unwrap().to_i64();
+
+    StatusCode::from_u16(rack_status as u16)
+}
+
+// This is a Rack::BodyProxy when used with Rails
+fn build_body(rack_response_body: AnyObject) -> String {
+    let ruby_body = Class::from_existing("Busy").send("extract_rack_proxy", vec![rack_response_body]);
+
+    ruby_body.try_convert_to::<RString>().unwrap().to_string()
 }
