@@ -1,4 +1,4 @@
-use hyper::header::{ContentLength};
+use hyper::header::{ContentLength, Headers};
 use hyper::server::{Request, Response};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
@@ -17,7 +17,7 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
         // TODO: handle relative paths
         if let RequestUri::AbsolutePath(uri) = req.uri {
             let uri = uri.as_str();
-            println!("URI: {}", uri);
+            println!("busy> URI: {}", uri);
 
             // TODO: Not sure if these should all be the same
             env.store(RString::new("PATH_INFO"), RString::new(uri));
@@ -61,24 +61,30 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
 }
 
 pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
+    //------------------------
     // Set status
     let hyper_status = build_status(rack_array.at(0));
     *res.status_mut() = hyper_status;
-    println!("status: {}", hyper_status);
+    println!("busy> status: {}", hyper_status);
 
     //------------------------
-    // Read body
+    // Set body
     let body = build_body(rack_array.at(2));
 
     //------------------------
     // Set headers
-    res.headers_mut().set(ContentLength(body.len() as u64));
     ruby_utils::ruby_puts(RString::new("Rack response headers: ").to_any_object());
     ruby_utils::ruby_puts(rack_array.at(1));
+
+    let headers = build_headers(rack_array.at(1));
+    println!("busy> response headers: {:}", headers);
+
+    res.headers_mut().clone_from(&headers);
+    res.headers_mut().set(ContentLength(body.len() as u64));
     // End headers
     //------------------------
 
-    println!("body: {}", body);
+    println!("busy> body: {}", body);
     body
 }
 
@@ -90,7 +96,25 @@ fn build_status(rack_response_code: AnyObject) -> StatusCode {
 
 // This is a Rack::BodyProxy when used with Rails
 fn build_body(rack_response_body: AnyObject) -> String {
-    let ruby_body = Class::from_existing("Busy").send("extract_rack_proxy", vec![rack_response_body]);
+    let ruby_body = Class::from_existing("Busy")
+        .send("extract_rack_proxy", vec![rack_response_body]);
 
     ruby_body.try_convert_to::<RString>().unwrap().to_string()
+}
+
+fn build_headers(rack_headers: AnyObject) -> Headers {
+    let ruby_headers = rack_headers.try_convert_to::<Hash>().unwrap();
+    let mut headers: Headers = Headers::new();
+
+    ruby_headers.each(|name, value| {
+        let name_string = name.try_convert_to::<RString>().unwrap().to_string();
+        let value_string = value.try_convert_to::<RString>().unwrap().to_string();
+
+        headers.set_raw(
+            name_string,
+            vec![value_string.into_bytes()]
+        );
+    });
+
+    headers
 }
