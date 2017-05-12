@@ -9,7 +9,7 @@ module Busy
     # puts "rack_proxy.@body is a: #{rack_proxy.instance_variable_get(:@body).class}"
     b = nil
     rack_proxy.each do |body|
-      # puts "body is a: #{rack_proxy.instance_variable_get(:@body).class}"
+      puts "body in ruby is a: #{rack_proxy.instance_variable_get(:@body).class}"
       b = body
     end
 

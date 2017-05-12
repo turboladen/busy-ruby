@@ -8,6 +8,6 @@ use ruru::VM;
 
 #[no_mangle]
 pub extern fn initialize_busy() {
-    VM::require("rack/builder");
+    // VM::require("rack/builder");
     server::init();
 }

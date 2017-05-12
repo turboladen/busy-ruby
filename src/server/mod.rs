@@ -1,4 +1,5 @@
 mod rack_env;
+pub mod rack_input;
 
 use self::rack_env::RackEnv;
 use self::rack_env::rack_to_response;
@@ -82,4 +83,6 @@ pub extern fn init() {
             itself.def_self("run", run);
         });
     });
+
+    rack_input::init();
 }

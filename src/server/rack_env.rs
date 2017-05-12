@@ -48,7 +48,10 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
 
         //---------------------------------------------------------------------
         // Rack-specific
-        env.store(RString::new("rack.input"), RString::new(""));
+        // HEEEEEEEEEEEEEEERRR
+        let rack_input = Class::from_existing("Busy").get_nested_class("RackInput").new_instance(vec![]);
+        env.store(RString::new("rack.input"), rack_input);
+        env.store(RString::new("rack.errors"), RString::new(""));
         env.store(RString::new("rack.multiprocess"), Boolean::new(false));
         env.store(RString::new("rack.thread"), Boolean::new(true));
         env.store(RString::new("rack.url_scheme"), RString::new("http"));
@@ -99,6 +102,12 @@ fn build_body(rack_response_body: AnyObject) -> String {
     let ruby_body = Class::from_existing("Busy")
         .send("extract_rack_proxy", vec![rack_response_body]);
 
+    let body_class = ruby_body.send("class", vec![])
+        .send("name", vec![])
+        .try_convert_to::<RString>()
+        .unwrap().to_string();
+
+    println!("body class: {}", body_class);
     ruby_body.try_convert_to::<RString>().unwrap().to_string()
 }
 
