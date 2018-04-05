@@ -1,7 +1,7 @@
 use hyper::header::{ContentLength, Headers};
 use hyper::server::{Request, Response};
-use hyper::status::StatusCode;
-use hyper::uri::RequestUri;
+use hyper::StatusCode;
+use hyper::Uri;
 use ruru::{AnyObject, Array, Boolean, Class, Fixnum, Hash, Object, RString};
 use self::super::super::ruby_utils;
 
@@ -9,14 +9,14 @@ pub struct RackEnv {
     pub env: Hash
 }
 
-impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
+impl From<Request> for RackEnv {
     fn from(req: Request) -> Self {
         let mut env = Hash::new();
         env.store(RString::new("SERVER_SOFTWARE"), RString::new("busy bruh"));
 
         // TODO: handle relative paths
-        if let RequestUri::AbsolutePath(uri) = req.uri {
-            let uri = uri.as_str();
+        if req.uri().is_absolute() {
+            let uri = req.uri().as_ref();
             println!("busy> URI: {}", uri);
 
             // TODO: Not sure if these should all be the same
@@ -25,13 +25,16 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
             env.store(RString::new("REQUEST_URI"), RString::new(uri));
         };
 
-        let remote_addr = format!("{}", req.remote_addr.ip());
-        env.store(RString::new("REMOTE_ADDR"), RString::new(remote_addr.as_str()));
+        // let remote_addr = format!("{}", req.remote_addr.ip());
+        if let Some(remote_addr) = req.remote_addr() {
+            let remote_addr = format!("{}", remote_addr.ip());
+            env.store(RString::new("REMOTE_ADDR"), RString::new(remote_addr.as_str()));
+        }
 
-        let request_method = format!("{}", req.method);
+        let request_method = format!("{}", req.method());
         env.store(RString::new("REQUEST_METHOD"), RString::new(request_method.as_str()));
 
-        let http_version = format!("{}", req.version);
+        let http_version = format!("{}", req.version());
         env.store(RString::new("HTTP_VERSION"), RString::new(http_version.as_str()));
         env.store(RString::new("SERVER_PROTOCOL"), RString::new(http_version.as_str()));
 
@@ -40,7 +43,7 @@ impl<'a, 'b> From<Request<'a, 'b>> for RackEnv {
 
         //---------------------------------------------------------------------
         // Headers
-        for header in req.headers.iter() {
+        for header in req.headers().iter() {
             let name = format!("HTTP_{}", header.name().to_uppercase());
             let value = header.value_string();
             env.store(RString::new(name.as_str()), RString::new(value.as_str()));
@@ -67,7 +70,8 @@ pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
     //------------------------
     // Set status
     let hyper_status = build_status(rack_array.at(0));
-    *res.status_mut() = hyper_status;
+    // *res.status_mut() = hyper_status;
+    res.set_status(hyper_status);
     println!("busy> status: {}", hyper_status);
 
     //------------------------
@@ -94,7 +98,7 @@ pub fn rack_to_response(rack_array: Array, res: &mut Response) -> String {
 fn build_status(rack_response_code: AnyObject) -> StatusCode {
     let rack_status = rack_response_code.try_convert_to::<Fixnum>().unwrap().to_i64();
 
-    StatusCode::from_u16(rack_status as u16)
+    StatusCode::try_from(rack_status as u16).unwrap()
 }
 
 // This is a Rack::BodyProxy when used with Rails

@@ -5,6 +5,7 @@ authors = ["Steve Loveless <steve.loveless@gmail.com>"]
 
 [dependencies]
 hyper = "*"
+futures = "*"
 ruru = "*"
 
 [lib]

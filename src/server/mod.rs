@@ -4,8 +4,7 @@ pub mod rack_input;
 use self::rack_env::RackEnv;
 use self::rack_env::rack_to_response;
 use self::super::ruby_utils;
-use hyper::server::Server as HyperServer;
-use hyper::server::{Request, Response};
+use hyper::server::{Http, Request, Response};
 use ruru::{AnyObject, Array, Class, NilClass, Object, RString};
 use std::error::Error;
 use std::io::Write;
@@ -46,8 +45,10 @@ fn run_hyper(ruby_app: AnyObject) {
     unsafe { signal(2, quit); }
     unsafe { signal(3, quit); }
 
-    HyperServer::http("0.0.0.0:8080").unwrap().handle(move |req: Request, mut res: Response| {
-        println!("request uri: {}", req.uri);
+    let addr = "0.0.0.0:8080".parse().unwrap();
+
+    Http::new().bind(&addr, move |req: Request, mut res: Response| {
+        println!("request uri: {}", req.uri());
         let rack_env = RackEnv::from(req);
 
         let app_class_name = ruby_app.send("class", vec![]);

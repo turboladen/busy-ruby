@@ -1,5 +1,6 @@
 #[macro_use] extern crate ruru;
 extern crate hyper;
+extern crate futures;
 
 pub mod server;
 pub mod ruby_utils;
